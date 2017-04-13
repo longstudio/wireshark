@@ -1,5 +1,4 @@
 # Makefile.am
-# Automake file for Wireshark plugins
 #
 # Wireshark - Network traffic analyzer
 # By Gerald Combs <gerald@wireshark.org>
@@ -19,36 +18,48 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
--include Custom.make
+include $(top_srcdir)/Makefile.am.inc
+include ../Makefile.am.inc
 
-SUBDIRS = $(_CUSTOM_SUBDIRS_) \
+# the name of the plugin
+PLUGIN_NAME = nova
+
+# Non-generated sources to be scanned for registration routines
+NONGENERATED_REGISTER_C_FILES = \
+	packet-nova.c
+
+# Non-generated sources
+NONGENERATED_C_FILES = \
+	$(NONGENERATED_REGISTER_C_FILES)
+
+plugin_LTLIBRARIES = nova.la
+
+nova_la_SOURCES = \
+	plugin.c \
+	moduleinfo.h \
+	$(SRC_FILES)	\
+	$(HEADER_FILES)
+
+nova_la_CPPFLAGS = $(AM_CPPFLAGS) $(PLUGIN_CPPFLAGS)
+
+nova_la_CFLAGS = $(AM_CFLAGS) $(PLUGIN_CFLAGS)
+
+nova_la_LDFLAGS = $(PLUGIN_LDFLAGS)
+
+CLEANFILES = \
 	nova \
-	docsis \
-	easy_codec \
-	ethercat \
-	gryphon \
-	irda \
-	m2m \
-	mate \
-	opcua \
-	profinet \
-	stats_tree \
-	transum \
-	unistim \
-	wimax \
-	wimaxasncp \
-	wimaxmacphy
+	*~
 
-EXTRA_DIST = \
-	$(_CUSTOM_EXTRA_DIST_) \
-	Custom.make.example \
-	Custom.m4.example
+DISTCLEANFILES = \
+	$(NODIST_SRC_FILES) \
+	$(NODIST_HEADER_FILES)
 
 MAINTAINERCLEANFILES = \
-	Makefile.in
+	Makefile.in	\
+	$(GENERATED_SRC_FILES) \
+	$(GENERATED_HEADER_FILES) \
+	plugin.c
 
-checkapi:
-	for i in $(SUBDIRS); do \
-		(cd "$$i"; $(MAKE) checkapi); \
-	done
-
+EXTRA_DIST = \
+	plugin.rc.in		\
+	CMakeLists.txt

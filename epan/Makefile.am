@@ -491,6 +491,7 @@ plugin_src = \
 	../plugins/docsis/packet-uccrsp.c \
 	../plugins/docsis/packet-ucd.c \
 	../plugins/gryphon/packet-gryphon.c \
+	../plugins/nova/packet-nova.c \
 	../plugins/irda/packet-irda.c \
 	../plugins/m2m/packet-m2m.c \
 	../plugins/m2m/wimax_tlv.c \
