@@ -25,6 +25,18 @@ The latest distribution can be found in the subdirectory
 Installation
 ------------
 
+Buid and setup nova plugin
+------------
+./macosx-setup.sh
+./autogen.sh
+./configure
+make
+
+cd plugins/nova
+./build.sh
+./setup.sh
+-----------
+
 The Wireshark project builds and tests regularly on the following platforms:
 
   - Linux (Ubuntu)
