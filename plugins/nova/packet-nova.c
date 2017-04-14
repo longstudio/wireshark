@@ -279,6 +279,7 @@ static void
 dissect_thrift_common(tvbuff_t* tvb, packet_info* pinfo, proto_tree* tree)
 {
     proto_tree *sub_tree;
+    int is_pingpong = 0;
     int offset = 0;
     guint32 str_len;
     guint8 mtype;
@@ -331,13 +332,23 @@ dissect_thrift_common(tvbuff_t* tvb, packet_info* pinfo, proto_tree* tree)
     offset += 4;
     nova_attachment_str = tvb_get_string_enc(wmem_packet_scope(), tvb, offset, nova_attachment_len, ENC_UTF_8);
     offset += nova_attachment_len;
-    
-    version = tvb_get_ntohs(tvb, 0 + offset);
-    mtype = tvb_get_guint8(tvb, 3 + offset);
-    str_len = tvb_get_ntohl(tvb, 4 + offset);
-    seq_id = tvb_get_ntohl(tvb, str_len + 8 + offset);
-    method_str = tvb_get_string_enc(wmem_packet_scope(), tvb, 8 + offset, str_len, ENC_UTF_8);
 
+    if (strcmp(nova_service_name_str,"com.youzan.service.test") == 0 && 
+        (strcmp(nova_method_name_str,"ping") == 0 || strcmp(nova_method_name_str,"pong") == 0)) {
+        is_pingpong = 1;
+        if(strcmp(nova_method_name_str,"ping") == 0) {
+            mtype = 1;
+        }else{
+            mtype = 2;
+        }
+    } else {
+        version = tvb_get_ntohs(tvb, 0 + offset);
+        mtype = tvb_get_guint8(tvb, 3 + offset);
+        str_len = tvb_get_ntohl(tvb, 4 + offset);
+        seq_id = tvb_get_ntohl(tvb, str_len + 8 + offset);
+        method_str = tvb_get_string_enc(wmem_packet_scope(), tvb, 8 + offset, str_len, ENC_UTF_8);    
+    }
+    
     proto_tree_add_item(tree, proto_thrift, tvb, 0, -1, ENC_NA);
     sub_tree = proto_tree_add_subtree_format(tree, tvb, 0, -1, ett_thrift, NULL, "%s[ reqid:%ld, service:%s, method:%s]",
         val_to_str(mtype, thrift_mtype_vals, "%d"),
@@ -372,38 +383,47 @@ dissect_thrift_common(tvbuff_t* tvb, packet_info* pinfo, proto_tree* tree)
         offset += 4;
         proto_tree_add_item(sub_tree, hf_nova_attachement, tvb, offset, nova_attachment_len, ENC_ASCII | ENC_NA);
         offset += nova_attachment_len;
-        proto_tree_add_item(sub_tree, hf_thrift_version, tvb, offset, 2, ENC_BIG_ENDIAN);
-        offset += 2;
-        /* Not used byte ?*/
-        offset++;
-        proto_tree_add_item(sub_tree, hf_thrift_mtype, tvb, offset, 1, ENC_BIG_ENDIAN);
-        offset += 1;
-        offset += 4;
-        proto_tree_add_item(sub_tree, hf_thrift_method, tvb, offset, str_len, ENC_ASCII | ENC_NA);
-        offset = offset + str_len;
-        proto_tree_add_item(sub_tree, hf_thrift_seq_id, tvb, offset, 4, ENC_BIG_ENDIAN);
-        offset += 4;
+
+        if(is_pingpong == 0) {
+            proto_tree_add_item(sub_tree, hf_thrift_version, tvb, offset, 2, ENC_BIG_ENDIAN);
+            offset += 2;
+            /* Not used byte ?*/
+            offset++;
+            proto_tree_add_item(sub_tree, hf_thrift_mtype, tvb, offset, 1, ENC_BIG_ENDIAN);
+            offset += 1;
+            offset += 4;
+            proto_tree_add_item(sub_tree, hf_thrift_method, tvb, offset, str_len, ENC_ASCII | ENC_NA);
+            offset = offset + str_len;
+            proto_tree_add_item(sub_tree, hf_thrift_seq_id, tvb, offset, 4, ENC_BIG_ENDIAN);
+            offset += 4;
+        }
 
     }
     else{
-        offset = 49 + nova_service_name_len + nova_method_name_len + nova_attachment_len + str_len;
+        if(is_pingpong == 0) {
+            offset = 49 + nova_service_name_len + nova_method_name_len + nova_attachment_len + str_len;
+        }else {
+            offset = 33 + nova_service_name_len + nova_method_name_len + nova_attachment_len;
+        }
     }
 
-    /* Call method dissector here using dissector_try_string()*/
-    sub_tree = proto_tree_add_subtree(tree, tvb, offset, -1, ett_thrift, NULL, "Data");
-    if (tree){
-        while (offset < length){
-            /*Read type and field id */
-            type = tvb_get_guint8(tvb, offset);
-            proto_tree_add_item(sub_tree, hf_thrift_type, tvb, offset, 1, ENC_BIG_ENDIAN);
-            if (type == 0){
-                return;
-            }
-            offset++;
-            proto_tree_add_item(sub_tree, hf_thrift_fid, tvb, offset, 2, ENC_BIG_ENDIAN);
-            offset += 2;
+    if(is_pingpong == 0) {
+        /* Call method dissector here using dissector_try_string()*/
+        sub_tree = proto_tree_add_subtree(tree, tvb, offset, -1, ett_thrift, NULL, "Data");
+        if (tree){
+            while (offset < length){
+                /*Read type and field id */
+                type = tvb_get_guint8(tvb, offset);
+                proto_tree_add_item(sub_tree, hf_thrift_type, tvb, offset, 1, ENC_BIG_ENDIAN);
+                if (type == 0){
+                    return;
+                }
+                offset++;
+                proto_tree_add_item(sub_tree, hf_thrift_fid, tvb, offset, 2, ENC_BIG_ENDIAN);
+                offset += 2;
 
-            offset = dissect_thrift_type(tvb, pinfo, sub_tree, type, offset, length);
+                offset = dissect_thrift_type(tvb, pinfo, sub_tree, type, offset, length);
+            }
         }
     }
 }
