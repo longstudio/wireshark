@@ -37,6 +37,7 @@ void proto_reg_handoff_nova(void);
 #define THRIFT_VERSION_MASK     0xffff0000
 #define THRIFT_VERSION_1        0x80010000
 #define NOVA_MAGIC_1            0xdabc
+#define NOVA_VERSION_0            0x00
 #define NOVA_VERSION_1            0x01
 
 static int proto_thrift = -1;
@@ -455,7 +456,7 @@ dissect_thrift_heur(tvbuff_t* tvb, packet_info* pinfo, proto_tree* tree, void *d
 
     offset += 4;
     nova_version = tvb_get_guint8(tvb, offset);
-    if (nova_version != NOVA_VERSION_1) {
+    if (nova_version != NOVA_VERSION_1 && nova_version != NOVA_VERSION_0) {
         return FALSE;
     }
 
